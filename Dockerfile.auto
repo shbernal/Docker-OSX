@@ -158,7 +158,7 @@ ENV BOOT_ARGS=
 ENV BOOTDISK=
 
 # edit the CPU that is beign emulated
-ENV CPU=Penryn
+ENV CPU=Skylake-Client,-hle,-rtm
 
 ENV DISPLAY=:99
 
@@ -180,7 +180,7 @@ ENV KVM='accel=kvm:tcg'
 # ENV MASTER_PLIST_URL="https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom.plist"
 
 # ENV NETWORKING=e1000-82545em
-ENV NETWORKING=vmxnet3
+ENV NETWORKING=virtio-net-pci
 
 ENV NOPICKER=true
 

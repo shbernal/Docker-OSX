@@ -1137,13 +1137,25 @@ egrep -c '(svm|vmx)' /proc/cpuinfo
 
 ### Virtual network adapters
 
-#### Fast internet connectivity
+The default adapter is `virtio-net-pci`, the one OSX-KVM uses for current macOS versions.
+
+#### High Sierra and older
 
 `-e NETWORKING=vmxnet3`
 
 #### Slow internet connectivity
 
 `-e NETWORKING=e1000-82545em`
+
+### Booting a disk image installed with the old defaults
+
+The image emulates a `Skylake-Client,-hle,-rtm` CPU with a `virtio-net-pci` adapter and a `vmware-svga` display, matching OSX-KVM. Older releases used a `Penryn` CPU and a `vmxnet3` adapter. If a disk image installed under those no longer boots or loses its network, pass the old values:
+
+```bash
+    -e CPU=Penryn \
+    -e CPUID_FLAGS='vendor=GenuineIntel,+invtsc,vmware-cpuid-freq=on,+ssse3,+sse4.2,+popcnt,+avx,+aes,+xsave,+xsaveopt,check,' \
+    -e NETWORKING=vmxnet3 \
+```
 
 ### CI/CD Related Improvements
 

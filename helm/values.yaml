@@ -62,7 +62,7 @@ macos:
 #       to install macOS with a software GPU configured.
 #
 qemu:
-  cpu: Penryn,kvm=on,vendor=GenuineIntel,+invtsc,vmware-cpuid-freq=on,+pcid,+ssse3,+sse4.2,+popcnt,+avx,+avx2,+aes,+xsave,+xsaveopt,check
+  cpu: Skylake-Client,-hle,-rtm,kvm=on,vendor=GenuineIntel,+invtsc,vmware-cpuid-freq=on,+pcid,+ssse3,+sse4.2,+popcnt,+avx,+avx2,+aes,+xsave,+xsaveopt,check
   softwareGpu: vmware
   hardwareGpu:
     # when enabled, qemu.softwareGpu will be disabled automatically. disabling this will rely on softwareGpu instead
