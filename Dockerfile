@@ -154,7 +154,7 @@ RUN touch enable-ssh.sh \
 
 # RUN yes | sudo pacman -Syu qemu libvirt dnsmasq virt-manager bridge-utils edk2-ovmf netctl libvirt-dbus --overwrite --noconfirm
 
-RUN yes | sudo pacman -Syu bc qemu-desktop libvirt dnsmasq virt-manager bridge-utils openresolv jack2 ebtables edk2-ovmf netctl libvirt-dbus wget scrot --overwrite --noconfirm \
+RUN sudo pacman -Syu bc qemu-desktop edk2-ovmf wget --overwrite '*' --noconfirm \
     && yes | sudo pacman -Scc
 
 WORKDIR /home/arch/OSX-KVM
