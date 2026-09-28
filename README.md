@@ -1143,7 +1143,7 @@ The default adapter is `virtio-net-pci`, the one OSX-KVM uses for current macOS 
 
 ### Booting a disk image installed with the old defaults
 
-The image emulates a `Skylake-Client,-hle,-rtm` CPU with a `virtio-net-pci` adapter and a `vmware-svga` display, matching OSX-KVM. Older releases used a `Penryn` CPU and a `vmxnet3` adapter. If a disk image installed under those no longer boots or loses its network, pass the old values:
+The image emulates a `Skylake-Client,-hle,-rtm` CPU with a `virtio-net-pci` adapter and a `vmware-svga` display, matching OSX-KVM. Older releases used a `Penryn` CPU and a `vmxnet3` adapter. Disk images installed under those still boot on the new defaults, network included. To keep the old virtual hardware for such a disk, pass the old values:
 
 ```bash
     -e CPU=Penryn \
