@@ -242,7 +242,7 @@ CMD ! [[ -e "${BASESYSTEM_IMAGE:-BaseSystem.img}" ]] \
             ; if [[ "${MASTER_PLIST_URL}" ]]; then \
                 curl -fL -o ./serial.config.plist "${MASTER_PLIST_URL}" \
             ; else \
-                ./serial-config.py > ./serial.config.plist \
+                ./opencore-config.py > ./serial.config.plist \
             ; fi \
             && ./Docker-OSX/osx-serial-generator/generate-specific-bootdisk.sh \
             --master-plist ./serial.config.plist \

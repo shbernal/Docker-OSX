@@ -234,58 +234,58 @@ RUN grep -v InstallMedia ./Launch.sh > ./Launch-nopicker.sh \
     && sed -i -e s/OpenCore\.qcow2/OpenCore\-nopicker\.qcow2/ ./Launch-nopicker.sh
 ###
 
-# Writes OSX-KVM's OpenCore config with the serials from the environment,
-# used by GENERATE_UNIQUE and GENERATE_SPECIFIC unless MASTER_PLIST_URL is set.
-RUN touch serial-config.py \
-    && chmod +x ./serial-config.py \
-    && tee -a serial-config.py <<< '#!/usr/bin/env python3' \
-    && tee -a serial-config.py <<< 'import os, plistlib, re, sys' \
-    && tee -a serial-config.py <<< 'with open("/home/arch/OSX-KVM/OpenCore/config.plist", "rb") as f:' \
-    && tee -a serial-config.py <<< '    config = plistlib.load(f)' \
-    && tee -a serial-config.py <<< 'generic = config["PlatformInfo"]["Generic"]' \
-    && tee -a serial-config.py <<< 'generic["SystemProductName"] = os.environ["DEVICE_MODEL"]' \
-    && tee -a serial-config.py <<< 'generic["SystemSerialNumber"] = os.environ["SERIAL"]' \
-    && tee -a serial-config.py <<< 'generic["MLB"] = os.environ["BOARD_SERIAL"]' \
-    && tee -a serial-config.py <<< 'generic["SystemUUID"] = os.environ["UUID"]' \
-    && tee -a serial-config.py <<< 'generic["ROM"] = bytes.fromhex(os.environ["MAC_ADDRESS"].replace(":", ""))' \
-    && tee -a serial-config.py <<< 'width, height = os.environ.get("WIDTH") or "1920", os.environ.get("HEIGHT") or "1080"' \
-    && tee -a serial-config.py <<< 'config["UEFI"]["Output"]["Resolution"] = f"{width}x{height}@32"' \
-    && tee -a serial-config.py <<< '# the config names a kext that ships as MCEReporterDisabler.kext; without it' \
-    && tee -a serial-config.py <<< '# AppleIntelMCEReporter panics on iMacPro1,1 and MacPro models' \
-    && tee -a serial-config.py <<< 'for kext in config["Kernel"]["Add"]:' \
-    && tee -a serial-config.py <<< '    if kext["BundlePath"] == "AppleMCEReporterDisabler.kext" and not os.path.exists("/home/arch/OSX-KVM/OpenCore/EFI/OC/Kexts/AppleMCEReporterDisabler.kext"):' \
-    && tee -a serial-config.py <<< '        kext["BundlePath"] = "MCEReporterDisabler.kext"' \
-    && tee -a serial-config.py <<< '# keep <data> on one line like the original, plistlib wraps it' \
-    && tee -a serial-config.py <<< 'out = plistlib.dumps(config, sort_keys=False)' \
-    && tee -a serial-config.py <<< 'out = re.sub(rb"<data>(.*?)</data>", lambda m: b"<data>" + b"".join(m[1].split()) + b"</data>", out, flags=re.S)' \
-    && tee -a serial-config.py <<< 'sys.stdout.buffer.write(out)'
+# Writes OSX-KVM's OpenCore config with the serials from the environment, if set,
+# and with the picker off if NOPICKER=true. Used for the nopicker bootdisk and by
+# GENERATE_UNIQUE and GENERATE_SPECIFIC unless MASTER_PLIST_URL is set.
+RUN touch opencore-config.py \
+    && chmod +x ./opencore-config.py \
+    && tee -a opencore-config.py <<< '#!/usr/bin/env python3' \
+    && tee -a opencore-config.py <<< 'import os, plistlib, re, sys' \
+    && tee -a opencore-config.py <<< 'with open("/home/arch/OSX-KVM/OpenCore/config.plist", "rb") as f:' \
+    && tee -a opencore-config.py <<< '    config = plistlib.load(f)' \
+    && tee -a opencore-config.py <<< 'if os.environ.get("SERIAL"):' \
+    && tee -a opencore-config.py <<< '    generic = config["PlatformInfo"]["Generic"]' \
+    && tee -a opencore-config.py <<< '    generic["SystemProductName"] = os.environ["DEVICE_MODEL"]' \
+    && tee -a opencore-config.py <<< '    generic["SystemSerialNumber"] = os.environ["SERIAL"]' \
+    && tee -a opencore-config.py <<< '    generic["MLB"] = os.environ["BOARD_SERIAL"]' \
+    && tee -a opencore-config.py <<< '    generic["SystemUUID"] = os.environ["UUID"]' \
+    && tee -a opencore-config.py <<< '    generic["ROM"] = bytes.fromhex(os.environ["MAC_ADDRESS"].replace(":", ""))' \
+    && tee -a opencore-config.py <<< '    width, height = os.environ.get("WIDTH") or "1920", os.environ.get("HEIGHT") or "1080"' \
+    && tee -a opencore-config.py <<< '    config["UEFI"]["Output"]["Resolution"] = f"{width}x{height}@32"' \
+    && tee -a opencore-config.py <<< 'if os.environ.get("NOPICKER") == "true":' \
+    && tee -a opencore-config.py <<< '    config["Misc"]["Boot"]["ShowPicker"] = False' \
+    && tee -a opencore-config.py <<< '    config["Misc"]["Boot"]["Timeout"] = 0' \
+    && tee -a opencore-config.py <<< '    # only list APFS and HFS volumes: with every volume, the bootdisk'"'"'s own EFI' \
+    && tee -a opencore-config.py <<< '    # partition comes first, fails to boot, and OpenCore shows the picker anyway' \
+    && tee -a opencore-config.py <<< '    config["Misc"]["Security"]["ScanPolicy"] = 0x1 | 0x100 | 0x200' \
+    && tee -a opencore-config.py <<< '# the config names a kext that ships as MCEReporterDisabler.kext; without it' \
+    && tee -a opencore-config.py <<< '# AppleIntelMCEReporter panics on iMacPro1,1 and MacPro models' \
+    && tee -a opencore-config.py <<< 'for kext in config["Kernel"]["Add"]:' \
+    && tee -a opencore-config.py <<< '    if kext["BundlePath"] == "AppleMCEReporterDisabler.kext" and not os.path.exists("/home/arch/OSX-KVM/OpenCore/EFI/OC/Kexts/AppleMCEReporterDisabler.kext"):' \
+    && tee -a opencore-config.py <<< '        kext["BundlePath"] = "MCEReporterDisabler.kext"' \
+    && tee -a opencore-config.py <<< '# keep <data> on one line like the original, plistlib wraps it' \
+    && tee -a opencore-config.py <<< 'out = plistlib.dumps(config, sort_keys=False)' \
+    && tee -a opencore-config.py <<< 'out = re.sub(rb"<data>(.*?)</data>", lambda m: b"<data>" + b"".join(m[1].split()) + b"</data>", out, flags=re.S)' \
+    && tee -a opencore-config.py <<< 'sys.stdout.buffer.write(out)'
 
 USER arch
 
 ENV USER=arch
 
-# These are hardcoded serials for non-iMessage related research
-# Overwritten by using GENERATE_UNIQUE=true
-# Upstream removed nopicker, so we are adding it back in, at build time
-# Once again, this is just for the Docker build so there is a default nopicker image there
-
 # libguestfs verbose
 ENV LIBGUESTFS_DEBUG=1
 ENV LIBGUESTFS_TRACE=1
 
-ARG STOCK_DEVICE_MODEL=iMacPro1,1
-ARG STOCK_SERIAL=C02TM2ZBHX87
-ARG STOCK_BOARD_SERIAL=C02717306J9JG361M
-ARG STOCK_UUID=007076A6-F2A2-4461-BBE5-BAD019F8025A
-ARG STOCK_MAC_ADDRESS=00:0A:27:00:00:00
-ARG STOCK_WIDTH=1920
-ARG STOCK_HEIGHT=1080
-ARG STOCK_MASTER_PLIST_URL=https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom.plist
-ARG STOCK_MASTER_PLIST_URL_NOPICKER=https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-nopicker-custom.plist
-ARG STOCK_BOOTDISK=/home/arch/OSX-KVM/OpenCore/OpenCore.qcow2
-ARG STOCK_BOOTDISK_NOPICKER=/home/arch/OSX-KVM/OpenCore/OpenCore-nopicker.qcow2
-
-
+# OSX-KVM only ships OpenCore.qcow2, so build the NOPICKER=true bootdisk from the
+# same config with the picker off. opencore-image-ng.sh takes EFI/ and
+# startup.nsh from the current directory.
+RUN cp -a ./OpenCore/EFI . \
+    && echo 'fs0:\EFI\BOOT\BOOTx64.efi' > startup.nsh \
+    && NOPICKER=true ./opencore-config.py > ./nopicker.config.plist \
+    && ./opencore-image-ng.sh \
+        --cfg ./nopicker.config.plist \
+        --img ./OpenCore/OpenCore-nopicker.qcow2 \
+    && rm -rf ./EFI ./startup.nsh ./nopicker.config.plist /var/tmp/.guestfs-*
 
 ### symlink the old directory as upstream has renamed a directory. Symlinking purely for backwards compatability!
 RUN ln -s /home/arch/OSX-KVM/OpenCore /home/arch/OSX-KVM/OpenCore-Catalina || true
@@ -400,7 +400,7 @@ CMD ! [[ -e "${BASESYSTEM_IMAGE:-BaseSystem.img}" ]] \
             ; if [[ "${MASTER_PLIST_URL}" ]]; then \
                 curl -fL -o ./serial.config.plist "${MASTER_PLIST_URL}" \
             ; else \
-                ./serial-config.py > ./serial.config.plist \
+                ./opencore-config.py > ./serial.config.plist \
             ; fi \
             && ./Docker-OSX/osx-serial-generator/generate-specific-bootdisk.sh \
             --master-plist ./serial.config.plist \

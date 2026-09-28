@@ -233,7 +233,6 @@ docker run -it \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e "DISPLAY=${DISPLAY:-:0.0}" \
     -e GENERATE_UNIQUE=true \
-    -e MASTER_PLIST_URL=https://raw.githubusercontent.com/sickcodes/Docker-OSX/master/custom/config-nopicker-custom.plist \
     -e SHORTNAME=catalina \
     sickcodes/docker-osx:naked
 ```
@@ -246,7 +245,7 @@ docker run -it \
 
 Enable SSH in network sharing inside the guest first. Change `-e "USERNAME=user"` and `-e "PASSWORD=password"` to your credentials. The container will add itself to `~/.ssh/authorized_keys`
 
-Since you can't see the screen, use the PLIST with nopicker, for example:
+Since you can't see the screen, this image skips the boot picker (`NOPICKER=true`), for example:
 
 ```bash
 # Catalina
@@ -263,7 +262,6 @@ docker run -it \
     -e "USERNAME=user" \
     -e "PASSWORD=alpine" \
     -e GENERATE_UNIQUE=true \
-    -e MASTER_PLIST_URL=https://raw.githubusercontent.com/sickcodes/Docker-OSX/master/custom/config-nopicker-custom.plist \
     -e SHORTNAME=monterey \
     sickcodes/docker-osx:naked-auto
 ``` -->
@@ -1235,7 +1233,7 @@ docker run \
 
 Generate serial numbers in `./custom` OR make docker generate them at runtime (see below).
 
-At runtime, `-e GENERATE_UNIQUE=true` and `-e GENERATE_SPECIFIC=true` write the serial numbers into OSX-KVM's own OpenCore `config.plist`, the one the stock bootdisk uses, and build a new bootdisk from it. To use a different config, pass `-e MASTER_PLIST_URL=<url>` pointing at a `config.plist` with `{{DEVICE_MODEL}}`, `{{SERIAL}}`, `{{BOARD_SERIAL}}`, `{{UUID}}`, `{{ROM}}`, `{{WIDTH}}` and `{{HEIGHT}}` placeholders, such as the templates in [osx-serial-generator](https://github.com/sickcodes/osx-serial-generator).
+At runtime, `-e GENERATE_UNIQUE=true` and `-e GENERATE_SPECIFIC=true` write the serial numbers into OSX-KVM's own OpenCore `config.plist`, the one the stock bootdisk uses, and build a new bootdisk from it, with the picker off if `-e NOPICKER=true`. To use a different config, pass `-e MASTER_PLIST_URL=<url>` pointing at a `config.plist` with `{{DEVICE_MODEL}}`, `{{SERIAL}}`, `{{BOARD_SERIAL}}`, `{{UUID}}`, `{{ROM}}`, `{{WIDTH}}` and `{{HEIGHT}}` placeholders, such as the templates in [osx-serial-generator](https://github.com/sickcodes/osx-serial-generator).
 
 At any time, verify your serial number before logging into iCloud, etc.
 
@@ -1461,7 +1459,6 @@ docker run -it \
     -e BOARD_SERIAL="C027251024NJG36UE" \
     -e UUID="5CCB366D-9118-4C61-A00A-E5BAF3BED451" \
     -e MAC_ADDRESS="A8:5C:2C:9A:46:2F" \
-    -e MASTER_PLIST_URL=https://raw.githubusercontent.com/sickcodes/Docker-OSX/master/custom/config-nopicker-custom.plist \
     -e WIDTH=1600 \
     -e HEIGHT=900 \
     sickcodes/docker-osx:naked
@@ -1901,7 +1898,7 @@ ssh user@localhost -p 50922
 
 #### Autoboot into OS X after you've installed everything
 
-Add the extra option `-e NOPICKER=true`.
+Add the extra option `-e NOPICKER=true`. It boots `OpenCore/OpenCore-nopicker.qcow2`, a copy of OSX-KVM's bootdisk that skips the picker and only lists macOS volumes, and detaches the installer.
 
 Old machines:
 
