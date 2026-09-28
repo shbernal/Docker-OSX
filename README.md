@@ -93,7 +93,6 @@ docker run -it \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e "DISPLAY=${DISPLAY:-:0.0}" \
     -e GENERATE_UNIQUE=true \
-    -e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom.plist' \
     -e SHORTNAME=monterey \
     sickcodes/docker-osx:latest
 
@@ -110,7 +109,6 @@ docker run -it \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e "DISPLAY=${DISPLAY:-:0.0}" \
     -e GENERATE_UNIQUE=true \
-    -e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom.plist' \
     -e SHORTNAME=ventura \
     sickcodes/docker-osx:latest
 
@@ -127,7 +125,6 @@ docker run -it \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e "DISPLAY=${DISPLAY:-:0.0}" \
     -e GENERATE_UNIQUE=true \
-    -e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom-sonoma.plist' \
     -e SHORTNAME=sonoma \
     sickcodes/docker-osx:latest
 
@@ -144,7 +141,6 @@ docker run -it \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e "DISPLAY=${DISPLAY:-:0.0}" \
     -e GENERATE_UNIQUE=true \
-    -e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom-sonoma.plist' \
     -e SHORTNAME=sequoia \
     sickcodes/docker-osx:latest
 
@@ -161,7 +157,6 @@ docker run -it \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
     -e "DISPLAY=${DISPLAY:-:0.0}" \
     -e GENERATE_UNIQUE=true \
-    -e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom-sonoma.plist' \
     -e SHORTNAME=tahoe \
     sickcodes/docker-osx:latest
 ```
@@ -1240,6 +1235,8 @@ docker run \
 
 Generate serial numbers in `./custom` OR make docker generate them at runtime (see below).
 
+At runtime, `-e GENERATE_UNIQUE=true` and `-e GENERATE_SPECIFIC=true` write the serial numbers into OSX-KVM's own OpenCore `config.plist`, the one the stock bootdisk uses, and build a new bootdisk from it. To use a different config, pass `-e MASTER_PLIST_URL=<url>` pointing at a `config.plist` with `{{DEVICE_MODEL}}`, `{{SERIAL}}`, `{{BOARD_SERIAL}}`, `{{UUID}}`, `{{ROM}}`, `{{WIDTH}}` and `{{HEIGHT}}` placeholders, such as the templates in [osx-serial-generator](https://github.com/sickcodes/osx-serial-generator).
+
 At any time, verify your serial number before logging into iCloud, etc.
 
 ```bash
@@ -1422,9 +1419,7 @@ Or tell the container to use specific ones using `-e GENERATE_SPECIFIC=true`
 
 ### Changing display resolution
 
-The display resolution is controlled by this line:
-
-https://github.com/sickcodes/Docker-OSX/blob/master/custom/config-nopicker-custom.plist#L819
+The display resolution is set by `UEFI > Output > Resolution` in the bootdisk's OpenCore `config.plist`.
 
 Instead of mounting that disk, Docker-OSX will generate a new `OpenCore.qcow2` by using this one cool trick:
 
@@ -1533,13 +1528,10 @@ sudo systemctl restart docker
 
 Pass the disk into the container as a volume and then pass the disk again into QEMU command line extras with.
 
-Use the `config-custom.plist` because you probably want to see the boot menu, otherwise omit the first line:
-
 ```bash
 DISK_TWO="${PWD}/mount_me.img"
 ```
 ```dockerfile
--e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom.plist' \
 -v "${DISK_TWO}:/disktwo" \
 -e EXTRA='-device ide-hd,bus=sata.5,drive=DISK-TWO -drive id=DISK-TWO,if=none,file=/disktwo,format=qcow2' \
 ```
@@ -1554,7 +1546,6 @@ docker run -it \
     --device /dev/kvm \
     -e "DISPLAY=${DISPLAY:-:0.0}" \
     -v /tmp/.X11-unix:/tmp/.X11-unix \
-    -e MASTER_PLIST_URL='https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom.plist' \
     -v "${OSX_IMAGE}":/image \
     -v "${DISK_TWO}":/disktwo \
     -e EXTRA='-device ide-hd,bus=sata.5,drive=DISK-TWO -drive id=DISK-TWO,if=none,file=/disktwo,format=qcow2' \

@@ -234,6 +234,32 @@ RUN grep -v InstallMedia ./Launch.sh > ./Launch-nopicker.sh \
     && sed -i -e s/OpenCore\.qcow2/OpenCore\-nopicker\.qcow2/ ./Launch-nopicker.sh
 ###
 
+# Writes OSX-KVM's OpenCore config with the serials from the environment,
+# used by GENERATE_UNIQUE and GENERATE_SPECIFIC unless MASTER_PLIST_URL is set.
+RUN touch serial-config.py \
+    && chmod +x ./serial-config.py \
+    && tee -a serial-config.py <<< '#!/usr/bin/env python3' \
+    && tee -a serial-config.py <<< 'import os, plistlib, re, sys' \
+    && tee -a serial-config.py <<< 'with open("/home/arch/OSX-KVM/OpenCore/config.plist", "rb") as f:' \
+    && tee -a serial-config.py <<< '    config = plistlib.load(f)' \
+    && tee -a serial-config.py <<< 'generic = config["PlatformInfo"]["Generic"]' \
+    && tee -a serial-config.py <<< 'generic["SystemProductName"] = os.environ["DEVICE_MODEL"]' \
+    && tee -a serial-config.py <<< 'generic["SystemSerialNumber"] = os.environ["SERIAL"]' \
+    && tee -a serial-config.py <<< 'generic["MLB"] = os.environ["BOARD_SERIAL"]' \
+    && tee -a serial-config.py <<< 'generic["SystemUUID"] = os.environ["UUID"]' \
+    && tee -a serial-config.py <<< 'generic["ROM"] = bytes.fromhex(os.environ["MAC_ADDRESS"].replace(":", ""))' \
+    && tee -a serial-config.py <<< 'width, height = os.environ.get("WIDTH") or "1920", os.environ.get("HEIGHT") or "1080"' \
+    && tee -a serial-config.py <<< 'config["UEFI"]["Output"]["Resolution"] = f"{width}x{height}@32"' \
+    && tee -a serial-config.py <<< '# the config names a kext that ships as MCEReporterDisabler.kext; without it' \
+    && tee -a serial-config.py <<< '# AppleIntelMCEReporter panics on iMacPro1,1 and MacPro models' \
+    && tee -a serial-config.py <<< 'for kext in config["Kernel"]["Add"]:' \
+    && tee -a serial-config.py <<< '    if kext["BundlePath"] == "AppleMCEReporterDisabler.kext" and not os.path.exists("/home/arch/OSX-KVM/OpenCore/EFI/OC/Kexts/AppleMCEReporterDisabler.kext"):' \
+    && tee -a serial-config.py <<< '        kext["BundlePath"] = "MCEReporterDisabler.kext"' \
+    && tee -a serial-config.py <<< '# keep <data> on one line like the original, plistlib wraps it' \
+    && tee -a serial-config.py <<< 'out = plistlib.dumps(config, sort_keys=False)' \
+    && tee -a serial-config.py <<< 'out = re.sub(rb"<data>(.*?)</data>", lambda m: b"<data>" + b"".join(m[1].split()) + b"</data>", out, flags=re.S)' \
+    && tee -a serial-config.py <<< 'sys.stdout.buffer.write(out)'
+
 USER arch
 
 ENV USER=arch
@@ -300,7 +326,9 @@ ENV IMAGE_FORMAT=qcow2
 
 ENV KVM='accel=kvm:tcg'
 
-ENV MASTER_PLIST_URL="https://raw.githubusercontent.com/sickcodes/osx-serial-generator/master/config-custom.plist"
+# A config.plist with {{SERIAL}}-style placeholders to use instead of OSX-KVM's own
+# when generating a bootdisk, e.g. the templates in sickcodes/osx-serial-generator.
+ENV MASTER_PLIST_URL=
 
 # ENV NETWORKING=e1000-82545em
 ENV NETWORKING=virtio-net-pci
@@ -361,19 +389,21 @@ CMD ! [[ -e "${BASESYSTEM_IMAGE:-BaseSystem.img}" ]] \
     || export BOOTDISK="${BOOTDISK:=/home/arch/OSX-KVM/OpenCore/OpenCore.qcow2}" \
     ; [[ "${GENERATE_UNIQUE}" == true ]] && { \
         ./Docker-OSX/osx-serial-generator/generate-unique-machine-values.sh \
-            --master-plist-url="${MASTER_PLIST_URL}" \
             --count 1 \
             --tsv ./serial.tsv \
-            --bootdisks \
             --width "${WIDTH:-1920}" \
             --height "${HEIGHT:-1080}" \
-            --output-bootdisk "${BOOTDISK:=/home/arch/OSX-KVM/OpenCore/OpenCore.qcow2}" \
             --output-env "${ENV:=/env}" \
     || exit 1 ; } \
-    ; [[ "${GENERATE_SPECIFIC}" == true ]] && { \
+    ; [[ "${GENERATE_UNIQUE}" == true || "${GENERATE_SPECIFIC}" == true ]] && { \
             source "${ENV:=/env}" 2>/dev/null \
-            ; ./Docker-OSX/osx-serial-generator/generate-specific-bootdisk.sh \
-            --master-plist-url="${MASTER_PLIST_URL}" \
+            ; if [[ "${MASTER_PLIST_URL}" ]]; then \
+                curl -fL -o ./serial.config.plist "${MASTER_PLIST_URL}" \
+            ; else \
+                ./serial-config.py > ./serial.config.plist \
+            ; fi \
+            && ./Docker-OSX/osx-serial-generator/generate-specific-bootdisk.sh \
+            --master-plist ./serial.config.plist \
             --model "${DEVICE_MODEL}" \
             --serial "${SERIAL}" \
             --board-serial "${BOARD_SERIAL}" \
