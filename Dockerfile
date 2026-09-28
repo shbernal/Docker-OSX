@@ -182,6 +182,14 @@ ARG BRANCH=master
 ARG REPO='https://github.com/sickcodes/Docker-OSX.git'
 RUN git clone --recurse-submodules --depth 1 --branch "${BRANCH:=master}" "${REPO:=https://github.com/sickcodes/Docker-OSX.git}"
 
+# The serial generator looks for opencore-image-ng.sh here before downloading it.
+# Right after mkfs, mount often misses the new FAT filesystem and only tries the
+# filesystems the libguestfs appliance has loaded, so load vfat first.
+RUN sed -e '/^fish mount \/dev\/sda2 \//i fish modprobe vfat' \
+        ./Docker-OSX/osx-serial-generator/opencore-image-ng.sh > ./opencore-image-ng.sh \
+    && grep -q '^fish modprobe vfat' ./opencore-image-ng.sh \
+    && chmod +x ./opencore-image-ng.sh
+
 RUN touch Launch.sh \
     && chmod +x ./Launch.sh \
     && tee -a Launch.sh <<< '#!/bin/bash' \
